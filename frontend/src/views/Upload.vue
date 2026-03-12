@@ -277,7 +277,7 @@ const wallpaperName = ref('');
 const selectedCategory = ref('电脑');
 
 // 后端API基础URL
-const API_BASE_URL = 'http://localhost:8003';
+const API_BASE_URL = '/api';
 
 // 页面加载时检查登录状态
 onMounted(async () => {

@@ -7,7 +7,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 from database import save_image_to_db, delete_image_from_db, get_images_from_db, update_image_in_db
 from utils import verify_token, format_file_size
-from qiniu_ import upload_to_qiniu, get_private_url, delete_from_qiniu
+from aliyun_oss import upload_to_oss, get_private_url, delete_from_oss
 
 router = APIRouter(prefix="", tags=["图片管理"])
 
@@ -58,7 +58,7 @@ async def upload_file(
         print(f"获取图片尺寸失败: {e}")
     
     file_key = f"images/{file_id}_{original_filename}"
-    file_url = upload_to_qiniu(content, file_key)
+    file_url = upload_to_oss(content, file_key)
     thumbnail_url = file_url
     thumb_key = file_key
     
@@ -73,8 +73,8 @@ async def upload_file(
         "height": img_height,
         "file_size": file_size,
         "uploader": username,
-        "qiniu_key": file_key,
-        "thumb_key": thumb_key
+        "oss_key": file_key,
+        "thumb_oss_key": thumb_key
     }
     
     try:
@@ -108,14 +108,14 @@ async def delete_image(file_id: str, authorization: str = Header(None)):
     import asyncio
     
     async def cleanup_resources():
-        # 删除七牛云原图和缩略图
+        # 删除阿里云OSS原图和缩略图
         try:
-            if file_data.get("qiniu_key"):
-                delete_from_qiniu(file_data["qiniu_key"])
-            if file_data.get("thumb_key"):
-                delete_from_qiniu(file_data["thumb_key"])
+            if file_data.get("oss_key"):
+                delete_from_oss(file_data["oss_key"])
+            if file_data.get("thumb_oss_key"):
+                delete_from_oss(file_data["thumb_oss_key"])
         except Exception as e:
-            print(f"删除七牛云文件失败: {e}")
+            print(f"删除阿里云OSS文件失败: {e}")
         
         # 删除本地文件
         if "file_path" in file_data and os.path.exists(file_data.get("file_path", "")):
@@ -175,13 +175,31 @@ async def download_file(file_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="请先登录才能下载")
     
     file_data = file_info[file_id]
+    original_filename = file_data["original_filename"]
     
     if file_data.get("file_url"):
+        import requests
+        from fastapi.responses import Response
+        
         signed_url = get_private_url(file_data["file_url"], expires=3600)
-        return RedirectResponse(url=signed_url)
+        try:
+            # 从阿里云OSS下载文件内容
+            response = requests.get(signed_url, stream=True)
+            response.raise_for_status()
+            
+            # 将文件内容返回给前端
+            return Response(
+                content=response.content,
+                media_type="application/octet-stream",
+                headers={
+                    "Content-Disposition": f"attachment; filename={original_filename}"
+                }
+            )
+        except Exception as e:
+            print(f"下载文件失败: {e}")
+            raise HTTPException(status_code=500, detail="下载失败")
     
     file_path = file_data.get("file_path")
-    original_filename = file_data["original_filename"]
     
     if file_path and os.path.exists(file_path):
         from fastapi.responses import FileResponse

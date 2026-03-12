@@ -110,7 +110,7 @@ const auth = inject('auth', {
   checkLoginStatus: async () => {},
   logout: async () => {}
 });
-const API_BASE_URL = 'http://localhost:8003';
+const API_BASE_URL = '/api';
 
 const image = ref(null);
 const showCopiedMessage = ref(false);

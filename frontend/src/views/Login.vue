@@ -53,7 +53,7 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 
 const router = useRouter();
-const API_BASE_URL = 'http://localhost:8003';
+const API_BASE_URL = '/api';
 
 const username = ref('');
 const password = ref('');

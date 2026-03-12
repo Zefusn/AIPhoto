@@ -4,5 +4,5 @@ python-multipart
 python-dotenv
 pymysql
 pillow
-qiniu
+oss2
 requests

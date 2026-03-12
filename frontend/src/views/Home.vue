@@ -222,24 +222,11 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
 };
 
-// 获取优化的预览图URL（使用七牛云图片处理）
+// 获取优化的预览图URL（使用后端缩略图接口）
 const getOptimizedThumbnailUrl = (image) => {
   if (!image) return '';
   
-  // 如果有七牛云缩略图URL，添加图片处理参数
-  if (image.thumbnail_url) {
-    // 优化：增加宽度到800px，质量95%，不转webp保持原始质量
-    const separator = image.thumbnail_url.includes('?') ? '&' : '?';
-    return `${image.thumbnail_url}${separator}imageView2/2/w/800/q/95`;
-  }
-  
-  // 如果有文件URL，直接使用文件URL并添加处理参数
-  if (image.file_url) {
-    const separator = image.file_url.includes('?') ? '&' : '?';
-    return `${image.file_url}${separator}imageView2/2/w/800/q/95`;
-  }
-  
-  // 否则使用后端缩略图接口
+  // 直接使用后端缩略图接口，确保返回带签名的HTTPS URL
   return `${API_BASE_URL}/thumbnail/${image.file_id}`;
 };
 
@@ -339,7 +326,7 @@ const itemsPerPage = 20;
 const showModal = ref(false);
 
 // 后端API基础URL
-const API_BASE_URL = 'http://localhost:8003';
+const API_BASE_URL = '/api';
 
 // 分类列表
 const categories = ['手机', '电脑'];
@@ -374,15 +361,23 @@ const fetchImages = async () => {
     }
     
     // 然后后台刷新数据
-    const response = await axios.get(`${API_BASE_URL}/images`);
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_BASE_URL}/images`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
     
     // 使用后端返回的真实数据
-    images.value = response.data.images.map(image => {
-      return {
-        ...image,
-        category: image.category || '电脑' // 使用后端返回的分类
-      };
-    });
+    if (response.data && Array.isArray(response.data.images)) {
+      images.value = response.data.images.map(image => {
+        return {
+          ...image,
+          category: image.category || '电脑' // 使用后端返回的分类
+        };
+      });
+    } else {
+      console.error('获取图片列表失败: 响应数据格式不正确', response.data);
+      images.value = [];
+    }
     
     // 缓存数据（10分钟过期，减少请求频率）
     localStorage.setItem('cachedImages', JSON.stringify(images.value));

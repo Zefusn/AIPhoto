@@ -19,6 +19,7 @@ def init_db():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+            # 创建users表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -32,28 +33,42 @@ def init_db():
                     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            print("创建users表成功")
             
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS images (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    file_id VARCHAR(255) UNIQUE NOT NULL,
-                    original_filename VARCHAR(500) NOT NULL,
-                    display_name VARCHAR(500) DEFAULT '',
-                    category VARCHAR(50) DEFAULT '电脑',
-                    file_url TEXT NOT NULL,
-                    thumbnail_url TEXT,
-                    width INT DEFAULT 0,
-                    height INT DEFAULT 0,
-                    file_size BIGINT DEFAULT 0,
-                    uploader VARCHAR(50) NOT NULL,
-                    qiniu_key VARCHAR(500),
-                    thumb_key VARCHAR(500),
-                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_category (category),
-                    INDEX idx_uploader (uploader)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
+            # 删除旧的images表
+            try:
+                cursor.execute("DROP TABLE IF EXISTS images")
+                print("删除旧images表成功")
+            except Exception as e:
+                print(f"删除旧images表失败: {e}")
             
+            # 创建新的images表
+            try:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS images (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        file_id VARCHAR(255) UNIQUE NOT NULL,
+                        original_filename VARCHAR(500) NOT NULL,
+                        display_name VARCHAR(500) DEFAULT '',
+                        category VARCHAR(50) DEFAULT '电脑',
+                        file_url TEXT NOT NULL,
+                        thumbnail_url TEXT,
+                        width INT DEFAULT 0,
+                        height INT DEFAULT 0,
+                        file_size BIGINT DEFAULT 0,
+                        uploader VARCHAR(50) NOT NULL,
+                        oss_key VARCHAR(500),
+                        thumb_oss_key VARCHAR(500),
+                        create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        INDEX idx_category (category),
+                        INDEX idx_uploader (uploader)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+                print("创建新images表成功")
+            except Exception as e:
+                print(f"创建新images表失败: {e}")
+            
+            # 创建管理员账户
             cursor.execute("SELECT username FROM users WHERE username = %s", (os.getenv('ADMIN_USERNAME'),))
             if not cursor.fetchone():
                 import hashlib
@@ -65,6 +80,10 @@ def init_db():
                 print(f"管理员账户已创建: {os.getenv('ADMIN_USERNAME')} / {os.getenv('ADMIN_PASSWORD')}")
             
             conn.commit()
+            print("数据库初始化完成")
+    except Exception as e:
+        print(f"数据库初始化失败: {e}")
+        conn.rollback()
     finally:
         conn.close()
 
@@ -75,7 +94,7 @@ def save_image_to_db(image_data: dict):
             cursor.execute("""
                 INSERT INTO images 
                 (file_id, original_filename, display_name, category, file_url, thumbnail_url, 
-                 width, height, file_size, uploader, qiniu_key, thumb_key)
+                 width, height, file_size, uploader, oss_key, thumb_oss_key)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                 display_name = VALUES(display_name),
@@ -96,8 +115,8 @@ def save_image_to_db(image_data: dict):
                 image_data.get('height', 0),
                 image_data.get('file_size', 0),
                 image_data.get('uploader', ''),
-                image_data.get('qiniu_key', ''),
-                image_data.get('thumb_key', '')
+                image_data.get('oss_key', ''),
+                image_data.get('thumb_oss_key', '')
             ))
             conn.commit()
     finally:
@@ -109,7 +128,7 @@ def get_images_from_db():
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT file_id, original_filename, display_name, category, file_url, 
-                       thumbnail_url, width, height, file_size, uploader, qiniu_key, thumb_key
+                       thumbnail_url, width, height, file_size, uploader, oss_key, thumb_oss_key
                 FROM images ORDER BY create_time DESC
             """)
             rows = cursor.fetchall()
@@ -126,8 +145,8 @@ def get_images_from_db():
                     'height': row['height'],
                     'file_size': row['file_size'],
                     'uploader': row['uploader'],
-                    'qiniu_key': row['qiniu_key'],
-                    'thumb_key': row['thumb_key']
+                    'oss_key': row['oss_key'],
+                    'thumb_oss_key': row['thumb_oss_key']
                 }
             return result
     finally:

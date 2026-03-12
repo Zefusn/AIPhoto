@@ -30,7 +30,10 @@ def upload_to_qiniu(file_data: bytes, key: str) -> str:
     
     if info.status_code == 200:
         if QINIU_DOMAIN:
-            return f"{QINIU_DOMAIN.rstrip('/')}/{key}"
+            domain = QINIU_DOMAIN.rstrip('/')
+            if not domain.startswith('https://'):
+                domain = 'https://' + domain.lstrip('http://')
+            return f"{domain}/{key}"
         else:
             return f"https://{QINIU_BUCKET_NAME}.qiniudn.com/{key}"
     else:
@@ -41,10 +44,14 @@ def get_private_url(base_url: str, expires: int = 3600) -> str:
     if not qiniu_auth:
         return base_url
     
-    if base_url.startswith('https://'):
-        base_url = 'http://' + base_url[8:]
-    
-    return qiniu_auth.private_download_url(base_url, expires=expires)
+    if base_url.startswith('http://'):
+        return qiniu_auth.private_download_url(base_url, expires=expires)
+    elif base_url.startswith('https://'):
+        http_url = 'http://' + base_url[8:]
+        signed_url = qiniu_auth.private_download_url(http_url, expires=expires)
+        return signed_url.replace('http://', 'https://', 1)
+    else:
+        return qiniu_auth.private_download_url(base_url, expires=expires)
 
 def delete_from_qiniu(key: str):
     """从七牛云删除文件"""
