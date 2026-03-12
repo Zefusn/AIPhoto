@@ -48,15 +48,25 @@ def get_private_url(base_url: str, expires: int = 3600) -> str:
     
     # 从URL中提取key
     key = None
-    if ALIYUN_CDN_DOMAIN and base_url.startswith(ALIYUN_CDN_DOMAIN):
-        key = base_url[len(ALIYUN_CDN_DOMAIN):].lstrip('/')
-    elif ALIYUN_ENDPOINT and base_url.startswith(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
-        key = base_url[len(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
-    elif ALIYUN_ENDPOINT and base_url.startswith(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
-        key = base_url[len(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
-    elif ALIYUN_ENDPOINT:
-        # 直接使用key
-        key = base_url
+    if ALIYUN_CDN_DOMAIN:
+        # 规范化CDN域名，确保使用HTTPS
+        cdn_domain = ALIYUN_CDN_DOMAIN.rstrip('/')
+        if not cdn_domain.startswith('https://'):
+            cdn_domain = 'https://' + cdn_domain.lstrip('http://')
+        
+        # 检查base_url是否以规范化的CDN域名开头
+        if base_url.startswith(cdn_domain):
+            key = base_url[len(cdn_domain):].lstrip('/')
+    
+    # 如果没有从CDN域名提取到key，尝试从OSS默认域名提取
+    if not key and ALIYUN_ENDPOINT:
+        if base_url.startswith(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
+            key = base_url[len(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
+        elif base_url.startswith(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
+            key = base_url[len(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
+        else:
+            # 直接使用key
+            key = base_url
     
     # 如果成功提取key，生成签名URL
     if key:

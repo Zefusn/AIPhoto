@@ -35,14 +35,7 @@ def init_db():
             """)
             print("创建users表成功")
             
-            # 删除旧的images表
-            try:
-                cursor.execute("DROP TABLE IF EXISTS images")
-                print("删除旧images表成功")
-            except Exception as e:
-                print(f"删除旧images表失败: {e}")
-            
-            # 创建新的images表
+            # 创建images表（如果不存在）
             try:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS images (
@@ -64,9 +57,9 @@ def init_db():
                         INDEX idx_uploader (uploader)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
-                print("创建新images表成功")
+                print("创建images表成功")
             except Exception as e:
-                print(f"创建新images表失败: {e}")
+                print(f"创建images表失败: {e}")
             
             # 创建管理员账户
             cursor.execute("SELECT username FROM users WHERE username = %s", (os.getenv('ADMIN_USERNAME'),))
