@@ -502,7 +502,7 @@ const downloadOriginalImage = async (image) => {
       responseType: 'blob'
     });
     
-    // 创建下载链接
+    // 直接处理文件内容
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
@@ -510,6 +510,11 @@ const downloadOriginalImage = async (image) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // 释放URL对象
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+    }, 100);
   } catch (error) {
     console.error('下载失败:', error);
     message.value = '下载失败：' + (error.response?.data?.detail || '未知错误');

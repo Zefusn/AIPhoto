@@ -57,25 +57,34 @@ def get_private_url(base_url: str, expires: int = 3600) -> str:
         # 检查base_url是否以规范化的CDN域名开头
         if base_url.startswith(cdn_domain):
             key = base_url[len(cdn_domain):].lstrip('/')
+            print(f"从CDN URL提取key: {key}")
     
     # 如果没有从CDN域名提取到key，尝试从OSS默认域名提取
     if not key and ALIYUN_ENDPOINT:
         if base_url.startswith(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
             key = base_url[len(f"https://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
+            print(f"从OSS HTTPS URL提取key: {key}")
         elif base_url.startswith(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):
             key = base_url[len(f"http://{ALIYUN_BUCKET_NAME}.{ALIYUN_ENDPOINT}"):].lstrip('/')
+            print(f"从OSS HTTP URL提取key: {key}")
         else:
             # 直接使用key
             key = base_url
+            print(f"直接使用key: {key}")
     
     # 如果成功提取key，生成签名URL
     if key:
         try:
-            # 生成签名URL
-            signed_url = bucket.sign_url('GET', key, expires)
+            # 生成签名URL，添加Content-Disposition响应头
+            headers = {
+                'Content-Disposition': 'attachment'
+            }
+            signed_url = bucket.sign_url('GET', key, expires, headers=headers)
+            print(f"生成的签名URL: {signed_url}")
             # 确保签名URL使用HTTPS协议
             if signed_url.startswith('http://'):
                 signed_url = signed_url.replace('http://', 'https://')
+                print(f"转换为HTTPS的签名URL: {signed_url}")
             # 如果配置了CDN域名，替换为CDN域名
             if ALIYUN_CDN_DOMAIN:
                 cdn_domain = ALIYUN_CDN_DOMAIN.rstrip('/')
@@ -84,7 +93,10 @@ def get_private_url(base_url: str, expires: int = 3600) -> str:
                 # 从签名URL中提取查询参数
                 if '?' in signed_url:
                     query_params = signed_url.split('?')[1]
-                    return f"{cdn_domain}/{key}?{query_params}"
+                    cdn_url = f"{cdn_domain}/{key}?{query_params}"
+                    print(f"生成的CDN签名URL: {cdn_url}")
+                    return cdn_url
+            print(f"最终返回的签名URL: {signed_url}")
             return signed_url
         except Exception as e:
             print(f"生成签名URL失败: {e}")

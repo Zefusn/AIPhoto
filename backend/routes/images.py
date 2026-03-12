@@ -175,35 +175,26 @@ async def download_file(file_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="请先登录才能下载")
     
     file_data = file_info[file_id]
-    original_filename = file_data["original_filename"]
     
     if file_data.get("file_url"):
+        # 使用流式响应，从阿里云OSS获取文件并返回
         import requests
         from fastapi.responses import StreamingResponse
         
+        # 获取签名URL
         signed_url = get_private_url(file_data["file_url"], expires=3600)
-        try:
-            # 从阿里云OSS下载文件内容
-            response = requests.get(signed_url, stream=True, timeout=300)  # 增加超时时间
-            response.raise_for_status()
-            
-            # 使用流式响应，逐块发送文件内容
-            def iter_content():
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        yield chunk
-            
-            # 返回流式响应
-            return StreamingResponse(
-                iter_content(),
-                media_type="application/octet-stream",
-                headers={
-                    "Content-Disposition": f"attachment; filename={original_filename}"
-                }
-            )
-        except Exception as e:
-            print(f"下载文件失败: {e}")
-            raise HTTPException(status_code=500, detail="下载失败")
+        
+        # 发送请求获取文件内容
+        response = requests.get(signed_url, stream=True)
+        
+        # 返回流式响应
+        return StreamingResponse(
+            response.iter_content(chunk_size=1024*1024),  # 1MB chunks
+            media_type="application/octet-stream",
+            headers={
+                "Content-Disposition": f"attachment; filename={file_data['original_filename']}"
+            }
+        )
     
     file_path = file_data.get("file_path")
     
@@ -211,7 +202,7 @@ async def download_file(file_id: str, authorization: str = Header(None)):
         from fastapi.responses import FileResponse
         return FileResponse(
             path=file_path,
-            filename=original_filename,
+            filename=file_data["original_filename"],
             media_type="application/octet-stream"
         )
     else:
