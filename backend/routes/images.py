@@ -108,10 +108,12 @@ async def delete_image(file_id: str, authorization: str = Header(None)):
     import asyncio
     
     async def cleanup_resources():
-        # 删除七牛云文件
+        # 删除七牛云原图和缩略图
         try:
             if file_data.get("qiniu_key"):
                 delete_from_qiniu(file_data["qiniu_key"])
+            if file_data.get("thumb_key"):
+                delete_from_qiniu(file_data["thumb_key"])
         except Exception as e:
             print(f"删除七牛云文件失败: {e}")
         
