@@ -228,15 +228,15 @@ const getOptimizedThumbnailUrl = (image) => {
   
   // 如果有七牛云缩略图URL，添加图片处理参数
   if (image.thumbnail_url) {
-    // 添加七牛云图片处理参数：限制宽度为400px，质量80%，格式为webp
+    // 优化：增加宽度到800px，质量95%，不转webp保持原始质量
     const separator = image.thumbnail_url.includes('?') ? '&' : '?';
-    return `${image.thumbnail_url}${separator}imageView2/2/w/400/q/80/format/webp`;
+    return `${image.thumbnail_url}${separator}imageView2/2/w/800/q/95`;
   }
   
   // 如果有文件URL，直接使用文件URL并添加处理参数
   if (image.file_url) {
     const separator = image.file_url.includes('?') ? '&' : '?';
-    return `${image.file_url}${separator}imageView2/2/w/400/q/80/format/webp`;
+    return `${image.file_url}${separator}imageView2/2/w/800/q/95`;
   }
   
   // 否则使用后端缩略图接口

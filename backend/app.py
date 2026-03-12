@@ -7,6 +7,7 @@ import hashlib
 import math
 import pymysql
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = None
 from typing import Optional
 from dotenv import load_dotenv
 from qiniu import Auth, put_data, BucketManager
@@ -413,6 +414,7 @@ async def upload_file(
     thumb_key = file_key
     
     file_info[file_id] = {
+        "file_id": file_id,
         "original_filename": original_filename,
         "display_name": display_name,
         "category": category,
@@ -428,9 +430,13 @@ async def upload_file(
     
     # 保存到数据库
     try:
+        print(f"准备保存图片到数据库: file_id={file_id}, filename={original_filename}")
         save_image_to_db(file_info[file_id])
+        print(f"图片信息已保存到数据库")
     except Exception as e:
         print(f"保存图片信息到数据库失败: {e}")
+        import traceback
+        traceback.print_exc()
     
     share_url = f"/download/{file_id}"
     return {"file_id": file_id, "share_url": share_url, "original_filename": original_filename, "display_name": display_name, "category": category, "url": file_url, "thumbnail_url": thumbnail_url}
