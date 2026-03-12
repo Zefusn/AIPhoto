@@ -1,8 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 import os
 import uuid
 import io
+import httpx
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 from database import save_image_to_db, delete_image_from_db, get_images_from_db, update_image_in_db
@@ -177,22 +178,23 @@ async def download_file(file_id: str, authorization: str = Header(None)):
     file_data = file_info[file_id]
     
     if file_data.get("file_url"):
-        # 使用流式响应，从阿里云OSS获取文件并返回
-        import requests
-        from fastapi.responses import StreamingResponse
-        
         # 获取签名URL
         signed_url = get_private_url(file_data["file_url"], expires=3600)
         
-        # 发送请求获取文件内容
-        response = requests.get(signed_url, stream=True)
+        # 使用异步HTTP客户端获取文件内容
+        async def stream_file():
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                async with client.stream("GET", signed_url) as response:
+                    async for chunk in response.aiter_bytes(chunk_size=8192):
+                        yield chunk
         
         # 返回流式响应
         return StreamingResponse(
-            response.iter_content(chunk_size=1024*1024),  # 1MB chunks
+            stream_file(),
             media_type="application/octet-stream",
             headers={
-                "Content-Disposition": f"attachment; filename={file_data['original_filename']}"
+                "Content-Disposition": f"attachment; filename={file_data['original_filename']}",
+                "Content-Length": str(file_data.get("file_size", 0))
             }
         )
     

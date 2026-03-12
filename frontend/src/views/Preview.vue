@@ -186,18 +186,65 @@ const copyImageLink = (shareUrl) => {
 const downloadOriginalImage = async (shareUrl) => {
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}${shareUrl}`, {
+    
+    // 使用fetch API进行流式下载
+    const response = await fetch(`${API_BASE_URL}${shareUrl}`, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : ''
-      },
-      responseType: 'blob'
+      }
     });
     
-    // 直接处理文件内容
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // 获取文件名
+    const contentDisposition = response.headers.get('content-disposition');
+    let filename = image.value.original_filename || `image_${Date.now()}`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+    
+    // 获取文件大小
+    const contentLength = response.headers.get('content-length');
+    const totalSize = contentLength ? parseInt(contentLength) : 0;
+    
+    // 使用流式读取
+    const reader = response.body.getReader();
+    const chunks = [];
+    let receivedSize = 0;
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      chunks.push(value);
+      receivedSize += value.length;
+      
+      // 可以在这里添加进度显示
+      if (totalSize > 0) {
+        const progress = (receivedSize / totalSize * 100).toFixed(1);
+        console.log(`下载进度: ${progress}%`);
+      }
+    }
+    
+    // 合并所有chunks
+    const allChunks = new Uint8Array(receivedSize);
+    let position = 0;
+    for (const chunk of chunks) {
+      allChunks.set(chunk, position);
+      position += chunk.length;
+    }
+    
+    // 创建Blob并下载
+    const blob = new Blob([allChunks]);
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', image.value.original_filename || `image_${Date.now()}`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -208,7 +255,7 @@ const downloadOriginalImage = async (shareUrl) => {
     }, 100);
   } catch (error) {
     console.error('下载失败:', error);
-    alert('下载失败：' + (error.response?.data?.detail || '未知错误'));
+    alert('下载失败：' + (error.message || '未知错误'));
   }
 };
 
