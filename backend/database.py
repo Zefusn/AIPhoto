@@ -54,15 +54,15 @@ def init_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
             
-            cursor.execute("SELECT username FROM users WHERE username = %s", ('admin',))
+            cursor.execute("SELECT username FROM users WHERE username = %s", (os.getenv('ADMIN_USERNAME', 'admin'),))
             if not cursor.fetchone():
                 import hashlib
-                admin_password = hashlib.sha256('admin123'.encode()).hexdigest()
+                admin_password = hashlib.sha256(os.getenv('ADMIN_PASSWORD', 'admin123').encode()).hexdigest()
                 cursor.execute(
                     "INSERT INTO users (username, password, nickname, status) VALUES (%s, %s, %s, %s)",
-                    ('admin', admin_password, '管理员', 1)
+                    (os.getenv('ADMIN_USERNAME', 'admin'), admin_password, '管理员', 1)
                 )
-                print("管理员账户已创建: admin / admin123")
+                print(f"管理员账户已创建: {os.getenv('ADMIN_USERNAME', 'admin')} / {os.getenv('ADMIN_PASSWORD', 'admin123')}")
             
             conn.commit()
     finally:
@@ -168,7 +168,7 @@ def get_user_from_db(username: str):
                 cursor.execute("SELECT username, password, status FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
                 if user:
-                    user["is_admin"] = username == "admin"
+                    user["is_admin"] = username == os.getenv('ADMIN_USERNAME', 'admin')
                 return user
         finally:
             conn.close()
