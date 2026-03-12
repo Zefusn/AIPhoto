@@ -179,17 +179,23 @@ async def download_file(file_id: str, authorization: str = Header(None)):
     
     if file_data.get("file_url"):
         import requests
-        from fastapi.responses import Response
+        from fastapi.responses import StreamingResponse
         
         signed_url = get_private_url(file_data["file_url"], expires=3600)
         try:
             # 从阿里云OSS下载文件内容
-            response = requests.get(signed_url, stream=True)
+            response = requests.get(signed_url, stream=True, timeout=300)  # 增加超时时间
             response.raise_for_status()
             
-            # 将文件内容返回给前端
-            return Response(
-                content=response.content,
+            # 使用流式响应，逐块发送文件内容
+            def iter_content():
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        yield chunk
+            
+            # 返回流式响应
+            return StreamingResponse(
+                iter_content(),
                 media_type="application/octet-stream",
                 headers={
                     "Content-Disposition": f"attachment; filename={original_filename}"

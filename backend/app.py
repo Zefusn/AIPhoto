@@ -17,6 +17,8 @@ origins = [
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5175",
     "http://127.0.0.1:3000",
+    "https://www.im.luckymax.cn",
+    "http://www.im.luckymax.cn",
 ]
 
 app.add_middleware(
@@ -29,8 +31,8 @@ app.add_middleware(
     max_age=3600,
 )
 
-app.include_router(auth_router)
-app.include_router(images_router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(images_router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():
