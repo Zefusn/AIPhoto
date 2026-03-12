@@ -313,12 +313,15 @@ const handleLazyLoad = () => {
 // 监听滚动事件
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
-  window.addEventListener('scroll', handleLazyLoad);
-  window.addEventListener('resize', handleLazyLoad);
-  // 初始加载 - 使用多种方式确保加载
-  setTimeout(initLazyLoad, 100);
-  setTimeout(handleLazyLoad, 300);
-  setTimeout(handleLazyLoad, 600);
+  // 只使用IntersectionObserver，移除滚动事件监听器以减少性能消耗
+  if ('IntersectionObserver' in window) {
+    initLazyLoad();
+  } else {
+    // 降级方案：只在需要时调用
+    window.addEventListener('scroll', handleLazyLoad, { passive: true });
+    window.addEventListener('resize', handleLazyLoad, { passive: true });
+    handleLazyLoad();
+  }
 });
 
 onUnmounted(() => {
@@ -363,12 +366,16 @@ const fetchImages = async () => {
     if (cachedImages && cachedExpiry && Date.now() < parseInt(cachedExpiry)) {
       images.value = JSON.parse(cachedImages);
       // 缓存加载后也初始化懒加载
-      setTimeout(initLazyLoad, 100);
+      if ('IntersectionObserver' in window) {
+        setTimeout(initLazyLoad, 100);
+      } else {
+        setTimeout(handleLazyLoad, 100);
+      }
     }
     
     // 然后后台刷新数据
     const response = await axios.get(`${API_BASE_URL}/images`);
-    console.log('获取图片列表:', response.data);
+    
     // 使用后端返回的真实数据
     images.value = response.data.images.map(image => {
       return {
@@ -376,16 +383,17 @@ const fetchImages = async () => {
         category: image.category || '电脑' // 使用后端返回的分类
       };
     });
-    console.log('处理后的图片列表:', images.value);
-    console.log('filteredImages:', filteredImages.value);
     
-    // 缓存数据（5分钟过期）
+    // 缓存数据（10分钟过期，减少请求频率）
     localStorage.setItem('cachedImages', JSON.stringify(images.value));
-    localStorage.setItem('cachedImagesExpiry', Date.now() + 5 * 60 * 1000);
+    localStorage.setItem('cachedImagesExpiry', Date.now() + 10 * 60 * 1000);
     
     // 数据更新后重新初始化懒加载
-    setTimeout(initLazyLoad, 100);
-    setTimeout(handleLazyLoad, 300);
+    if ('IntersectionObserver' in window) {
+      setTimeout(initLazyLoad, 100);
+    } else {
+      setTimeout(handleLazyLoad, 100);
+    }
   } catch (error) {
     console.error('获取图片列表失败:', error);
     message.value = '获取图片列表失败';
@@ -530,25 +538,17 @@ const handleLogout = async () => {
 
 // 删除图片
 const deleteImage = async (fileId) => {
-  console.log('isAdmin:', auth.isAdmin.value);
-  console.log('isLoggedIn:', auth.isLoggedIn.value);
-  console.log('localStorage is_admin:', localStorage.getItem('is_admin'));
-  console.log('token:', localStorage.getItem('token'));
-  
   if (!confirm('确定要删除这张壁纸吗？')) return;
   
   try {
     const token = localStorage.getItem('token');
     const url = `${API_BASE_URL}/image/${fileId}`;
-    console.log('Calling delete API:', url);
-    console.log('Token:', token);
     
     const response = await axios.delete(url, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
-    console.log('Delete response:', response);
     
     // 刷新列表
     await fetchImages();

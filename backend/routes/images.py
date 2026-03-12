@@ -101,24 +101,35 @@ async def delete_image(file_id: str, authorization: str = Header(None)):
     
     file_data = file_info[file_id]
     
-    try:
-        if file_data.get("qiniu_key"):
-            delete_from_qiniu(file_data["qiniu_key"])
-    except Exception as e:
-        print(f"删除七牛云文件失败: {e}")
-    
-    if "file_path" in file_data and os.path.exists(file_data.get("file_path", "")):
-        try:
-            os.remove(file_data["file_path"])
-        except:
-            pass
-    
+    # 先从内存中删除，立即响应
     del file_info[file_id]
     
-    try:
-        delete_image_from_db(file_id)
-    except Exception as e:
-        print(f"从数据库删除图片信息失败: {e}")
+    # 异步执行耗时操作
+    import asyncio
+    
+    async def cleanup_resources():
+        # 删除七牛云文件
+        try:
+            if file_data.get("qiniu_key"):
+                delete_from_qiniu(file_data["qiniu_key"])
+        except Exception as e:
+            print(f"删除七牛云文件失败: {e}")
+        
+        # 删除本地文件
+        if "file_path" in file_data and os.path.exists(file_data.get("file_path", "")):
+            try:
+                os.remove(file_data["file_path"])
+            except:
+                pass
+        
+        # 从数据库删除
+        try:
+            delete_image_from_db(file_id)
+        except Exception as e:
+            print(f"从数据库删除图片信息失败: {e}")
+    
+    # 后台执行清理操作
+    asyncio.create_task(cleanup_resources())
     
     return {"message": "删除成功"}
 
@@ -193,22 +204,16 @@ async def get_images(authorization: str = Header(None)):
         resolution = f"{width}x{height}" if width > 0 and height > 0 else "未知"
         size_str = format_file_size(file_size) if file_size > 0 else "未知"
         
-        thumbnail_url = data.get("thumbnail_url")
-        if thumbnail_url:
-            thumbnail_url = get_private_url(thumbnail_url, expires=3600)
-        
-        file_url = data.get("file_url")
-        if file_url:
-            file_url = get_private_url(file_url, expires=3600)
-        
+        # 直接返回原始URL，不在这里生成签名URL
+        # 签名URL由前端在需要时生成，减少服务器压力
         image_data = {
             "file_id": file_id,
             "original_filename": data["original_filename"],
             "display_name": data.get("display_name", data["original_filename"]),
             "category": data.get("category", "电脑"),
             "share_url": f"/download/{file_id}",
-            "thumbnail_url": thumbnail_url,
-            "file_url": file_url,
+            "thumbnail_url": data.get("thumbnail_url"),
+            "file_url": data.get("file_url"),
             "resolution": resolution,
             "size": size_str,
             "uploader": data.get("uploader", "未知")
