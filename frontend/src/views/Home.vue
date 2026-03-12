@@ -332,7 +332,7 @@ onUnmounted(() => {
     imageObserver.disconnect();
   }
 });
-const selectedCategory = ref('电脑');
+const selectedCategory = ref('手机');
 const selectedSort = ref('latest');
 const currentPage = ref(1);
 const itemsPerPage = 20;
