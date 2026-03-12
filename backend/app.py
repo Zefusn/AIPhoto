@@ -30,9 +30,6 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(images_router)
 
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("thumbnails", exist_ok=True)
-
 @app.on_event("startup")
 async def startup_event():
     try:
