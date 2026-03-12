@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', '8.138.150.134'),
-    'user': os.getenv('DB_USER', 'luckymax_login'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'luckymax_login'),
-    'charset': os.getenv('DB_CHARSET', 'utf8mb4')
+    'host': os.getenv('DB_HOST'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_NAME'),
+    'charset': os.getenv('DB_CHARSET')
 }
 
 def get_db_connection():
@@ -54,15 +54,15 @@ def init_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
             
-            cursor.execute("SELECT username FROM users WHERE username = %s", (os.getenv('ADMIN_USERNAME', 'admin'),))
+            cursor.execute("SELECT username FROM users WHERE username = %s", (os.getenv('ADMIN_USERNAME'),))
             if not cursor.fetchone():
                 import hashlib
-                admin_password = hashlib.sha256(os.getenv('ADMIN_PASSWORD', 'admin123').encode()).hexdigest()
+                admin_password = hashlib.sha256(os.getenv('ADMIN_PASSWORD').encode()).hexdigest()
                 cursor.execute(
                     "INSERT INTO users (username, password, nickname, status) VALUES (%s, %s, %s, %s)",
-                    (os.getenv('ADMIN_USERNAME', 'admin'), admin_password, '管理员', 1)
+                    (os.getenv('ADMIN_USERNAME'), admin_password, '管理员', 1)
                 )
-                print(f"管理员账户已创建: {os.getenv('ADMIN_USERNAME', 'admin')} / {os.getenv('ADMIN_PASSWORD', 'admin123')}")
+                print(f"管理员账户已创建: {os.getenv('ADMIN_USERNAME')} / {os.getenv('ADMIN_PASSWORD')}")
             
             conn.commit()
     finally:
@@ -168,7 +168,7 @@ def get_user_from_db(username: str):
                 cursor.execute("SELECT username, password, status FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
                 if user:
-                    user["is_admin"] = username == os.getenv('ADMIN_USERNAME', 'admin')
+                    user["is_admin"] = username == os.getenv('ADMIN_USERNAME')
                 return user
         finally:
             conn.close()

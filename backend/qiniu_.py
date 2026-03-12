@@ -5,10 +5,10 @@ load_dotenv()
 
 from qiniu import Auth, BucketManager
 
-QINIU_ACCESS_KEY = os.getenv('QINIU_ACCESS_KEY', '')
-QINIU_SECRET_KEY = os.getenv('QINIU_SECRET_KEY', '')
-QINIU_BUCKET_NAME = os.getenv('QINIU_BUCKET_NAME', '')
-QINIU_DOMAIN = os.getenv('QINIU_DOMAIN', '')
+QINIU_ACCESS_KEY = os.getenv('QINIU_ACCESS_KEY')
+QINIU_SECRET_KEY = os.getenv('QINIU_SECRET_KEY')
+QINIU_BUCKET_NAME = os.getenv('QINIU_BUCKET_NAME')
+QINIU_DOMAIN = os.getenv('QINIU_DOMAIN')
 
 qiniu_auth = None
 bucket_manager = None
