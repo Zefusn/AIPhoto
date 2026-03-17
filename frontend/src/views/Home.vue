@@ -13,6 +13,7 @@
               v-model="searchQuery"
               @keyup.enter="searchWallpapers"
             />
+            <button v-if="searchQuery" class="reset-btn" @click="resetSearch">×</button>
             <button class="search-btn" @click="searchWallpapers">搜索</button>
           </div>
           <div class="header-actions">
@@ -200,7 +201,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { useImageStore } from '../stores/imageStore';
 
 const router = useRouter();
 const auth = inject('auth', {
@@ -212,9 +213,8 @@ const auth = inject('auth', {
 });
 
 // 状态管理
-const images = ref([]);
+const imageStore = useImageStore();
 const message = ref('');
-const searchQuery = ref('');
 const showUserMenu = ref(false);
 
 // 切换用户菜单
@@ -226,7 +226,12 @@ const toggleUserMenu = () => {
 const getOptimizedThumbnailUrl = (image) => {
   if (!image) return '';
   
-  // 直接使用后端缩略图接口，确保返回带签名的HTTPS URL
+  // 优先使用image对象中的thumbnail_url，减少CDN请求流量
+  if (image.thumbnail_url) {
+    return image.thumbnail_url;
+  }
+  
+  // 后备方案：使用后端缩略图接口
   return `${API_BASE_URL}/thumbnail/${image.file_id}`;
 };
 
@@ -346,42 +351,7 @@ onMounted(() => {
 // 获取已上传的图片列表
 const fetchImages = async () => {
   try {
-    // 先尝试从缓存获取
-    const cachedImages = localStorage.getItem('cachedImages');
-    const cachedExpiry = localStorage.getItem('cachedImagesExpiry');
-    
-    if (cachedImages && cachedExpiry && Date.now() < parseInt(cachedExpiry)) {
-      images.value = JSON.parse(cachedImages);
-      // 缓存加载后也初始化懒加载
-      if ('IntersectionObserver' in window) {
-        setTimeout(initLazyLoad, 100);
-      } else {
-        setTimeout(handleLazyLoad, 100);
-      }
-    }
-    
-    // 然后后台刷新数据
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/images`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    });
-    
-    // 使用后端返回的真实数据
-    if (response.data && Array.isArray(response.data.images)) {
-      images.value = response.data.images.map(image => {
-        return {
-          ...image,
-          category: image.category || '电脑' // 使用后端返回的分类
-        };
-      });
-    } else {
-      console.error('获取图片列表失败: 响应数据格式不正确', response.data);
-      images.value = [];
-    }
-    
-    // 缓存数据（10分钟过期，减少请求频率）
-    localStorage.setItem('cachedImages', JSON.stringify(images.value));
-    localStorage.setItem('cachedImagesExpiry', Date.now() + 10 * 60 * 1000);
+    await imageStore.fetchImages();
     
     // 数据更新后重新初始化懒加载
     if ('IntersectionObserver' in window) {
@@ -395,16 +365,21 @@ const fetchImages = async () => {
   }
 };
 
+// 搜索关键词（用于显示）
+const searchQuery = ref('');
+// 实际用于过滤的关键词
+const filteredQuery = ref('');
+
 // 过滤后的图片列表
 const filteredImages = computed(() => {
-  let result = [...images.value];
+  let result = [...imageStore.images];
   
   // 按分类过滤
   result = result.filter(image => image.category === selectedCategory.value);
   
   // 按搜索词过滤
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
+  if (filteredQuery.value) {
+    const query = filteredQuery.value.toLowerCase();
     result = result.filter(image => 
       (image.display_name || image.original_filename).toLowerCase().includes(query)
     );
@@ -433,7 +408,7 @@ const filteredImages = computed(() => {
 
 // 总页数
 const totalPages = computed(() => {
-  return Math.ceil(images.value.length / itemsPerPage);
+  return Math.ceil(imageStore.images.length / itemsPerPage);
 });
 
 // 选择分类
@@ -450,6 +425,14 @@ const selectSort = (sort) => {
 
 // 搜索壁纸
 const searchWallpapers = () => {
+  filteredQuery.value = searchQuery.value;
+  currentPage.value = 1;
+};
+
+// 重置搜索
+const resetSearch = () => {
+  searchQuery.value = '';
+  filteredQuery.value = '';
   currentPage.value = 1;
 };
 
@@ -685,6 +668,31 @@ const deleteImage = async (fileId) => {
   box-shadow: 
     4px 4px 8px rgba(0, 0, 0, 0.3),
     -4px -4px 8px rgba(255, 255, 255, 0.15);
+}
+
+.reset-btn {
+  padding: 0 15px;
+  background: #f0f0f0;
+  color: #666;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.1),
+    -2px -2px 4px rgba(255, 255, 255, 0.8);
+  border-radius: 0;
+  margin-left: 1px;
+}
+
+.reset-btn:hover {
+  background: #e0e0e0;
+  color: #333;
+  transform: translateY(-1px);
+  box-shadow: 
+    3px 3px 6px rgba(0, 0, 0, 0.15),
+    -3px -3px 6px rgba(255, 255, 255, 0.9);
 }
 
 .header-actions {

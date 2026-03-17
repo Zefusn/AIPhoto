@@ -75,9 +75,10 @@ def get_private_url(base_url: str, expires: int = 3600) -> str:
     # 如果成功提取key，生成签名URL
     if key:
         try:
-            # 生成签名URL，添加Content-Disposition响应头
+            # 生成签名URL，添加Content-Disposition和Cache-Control响应头
             headers = {
-                'Content-Disposition': 'attachment'
+                'Content-Disposition': 'attachment',
+                'Cache-Control': 'public, max-age=3600'  # 缓存1小时
             }
             signed_url = bucket.sign_url('GET', key, expires, headers=headers)
             print(f"生成的签名URL: {signed_url}")

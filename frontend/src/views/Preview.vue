@@ -97,9 +97,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, inject } from 'vue';
+import { ref, onMounted, onUnmounted, inject, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import axios from 'axios';
+import { useImageStore } from '../stores/imageStore';
 
 const route = useRoute();
 const router = useRouter();
@@ -112,7 +112,8 @@ const auth = inject('auth', {
 });
 const API_BASE_URL = '/api';
 
-const image = ref(null);
+const imageStore = useImageStore();
+const image = computed(() => imageStore.currentImage);
 const showCopiedMessage = ref(false);
 const showUserMenu = ref(false);
 
@@ -154,15 +155,9 @@ const fetchImageInfo = async () => {
   }
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/images`);
-    const foundImage = response.data.images.find(img => img.file_id === fileId);
+    const foundImage = await imageStore.fetchImageById(fileId);
     
-    if (foundImage) {
-      image.value = {
-        ...foundImage,
-        category: foundImage.category || '电脑'
-      };
-    } else {
+    if (!foundImage) {
       router.push('/');
     }
   } catch (error) {
@@ -200,7 +195,7 @@ const downloadOriginalImage = async (shareUrl) => {
     
     // 获取文件名
     const contentDisposition = response.headers.get('content-disposition');
-    let filename = image.value.original_filename || `image_${Date.now()}`;
+    let filename = image.value?.original_filename || `image_${Date.now()}`;
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
       if (filenameMatch) {
