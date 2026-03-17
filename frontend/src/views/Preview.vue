@@ -643,4 +643,116 @@ onMounted(() => {
     font-size: 1.2rem;
   }
 }
+/* 响应式设计 */
+@media (max-width: 768px) {
+  /* 头部导航栏 */
+  .header-content {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+  }
+  
+  .header-actions {
+    gap: 10px;
+  }
+  
+  .upload-btn, .login-btn, .logout-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* 预览区域 */
+  .preview-section {
+    padding: 20px 0;
+    min-height: calc(100vh - 80px);
+  }
+  
+  .preview-content {
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  /* 左侧图片区域 */
+  .image-container {
+    min-height: 300px;
+  }
+  
+  .preview-image {
+    max-height: 400px;
+  }
+  
+  /* 右侧信息区域 */
+  .info-container {
+    padding: 10px;
+    gap: 20px;
+  }
+  
+  .image-title {
+    font-size: 1.2rem;
+  }
+  
+  .meta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .meta-label {
+    min-width: auto;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .action-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  /* 分享链接 */
+  .share-link {
+    padding: 12px;
+  }
+  
+  .link-input {
+    font-size: 0.8rem;
+  }
+  
+  .copy-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+}
+
+/* 小屏幕手机适配 */
+@media (max-width: 480px) {
+  /* 预览区域 */
+  .preview-content {
+    padding: 15px;
+  }
+  
+  .image-container {
+    min-height: 250px;
+  }
+  
+  .preview-image {
+    max-height: 300px;
+  }
+  
+  .image-title {
+    font-size: 1.1rem;
+  }
+  
+  .action-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+}
 </style>

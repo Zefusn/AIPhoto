@@ -1382,4 +1382,165 @@ const deleteImage = async (fileId) => {
     flex-direction: column;
   }
 }
+/* 响应式设计 */
+@media (max-width: 768px) {
+  /* 头部导航栏 */
+  .header-content {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+  }
+  
+  .search-box {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  
+  .header-actions {
+    gap: 10px;
+  }
+  
+  .upload-btn, .login-btn, .logout-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* 分类标签 */
+  .categories {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 10px;
+  }
+  
+  .category-tag {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+  
+  /* 壁纸展示区域 */
+  .wallpapers-section {
+    padding: 20px 0;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+  }
+  
+  .sort-options {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 5px;
+  }
+  
+  .sort-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* 壁纸网格 */
+  .wallpapers-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  
+  .wallpaper-card {
+    max-width: 100%;
+  }
+  
+  .wallpaper-preview {
+    height: 120px;
+    margin: 8px;
+  }
+  
+  .action-btn {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .btn-icon {
+    font-size: 14px;
+  }
+  
+  .wallpaper-info {
+    padding: 8px 10px;
+  }
+  
+  .file-name {
+    font-size: 0.8rem;
+  }
+  
+  .wallpaper-meta {
+    font-size: 0.7rem;
+  }
+  
+  /* 分页 */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .page-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* 模态框 */
+  .modal-content {
+    width: 95%;
+    max-width: 400px;
+  }
+  
+  .modal-body {
+    flex-direction: column;
+  }
+  
+  .modal-image {
+    max-height: 300px;
+  }
+  
+  .modal-info {
+    padding: 20px;
+  }
+}
+
+/* 小屏幕手机适配 */
+@media (max-width: 480px) {
+  .wallpapers-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  
+  .wallpaper-preview {
+    height: 100px;
+    margin: 6px;
+  }
+  
+  .action-btn {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .btn-icon {
+    font-size: 12px;
+  }
+  
+  .file-name {
+    font-size: 0.7rem;
+  }
+  
+  .wallpaper-meta {
+    font-size: 0.6rem;
+  }
+}
 </style>
