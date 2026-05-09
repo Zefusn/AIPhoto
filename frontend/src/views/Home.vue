@@ -222,16 +222,12 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value;
 };
 
-// 获取优化的预览图URL（使用后端缩略图接口）
+// 获取优化的预览图URL（使用后端缩略图接口获取签名URL）
 const getOptimizedThumbnailUrl = (image) => {
   if (!image) return '';
   
-  // 优先使用image对象中的thumbnail_url，减少CDN请求流量
-  if (image.thumbnail_url) {
-    return image.thumbnail_url;
-  }
-  
-  // 后备方案：使用后端缩略图接口
+  // 强制使用后端缩略图接口获取签名URL
+  // 因为OSS Bucket是私有的，直接访问CDN URL会返回403
   return `${API_BASE_URL}/thumbnail/${image.file_id}`;
 };
 

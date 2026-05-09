@@ -6,3 +6,5 @@ pymysql
 pillow
 oss2
 requests
+httpx
+urllib3<2
